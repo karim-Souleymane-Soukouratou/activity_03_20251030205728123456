@@ -1,15 +1,34 @@
 <?php
-// Start session to check if user logged in
 session_start();
+require 'db.php'; // Database connection
 
-// Example: restrict access if user not logged in
+// Check if user is logged in
 if (!isset($_SESSION['email'])) {
     header("Location: login.php");
     exit();
 }
 
-// You can later replace this with a database query
-$userName = "Prof. Angela Owusu Ansah";
+// Fetch user info from database
+$email = $_SESSION['email'];
+$stmt = $conn->prepare("SELECT name, role FROM users WHERE email = ?");
+$stmt->execute([$email]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($user) {
+    $userName = $user['name'];
+    $userRole = $user['role'];
+} else {
+    // If user not found, force logout
+    session_destroy();
+    header("Location: login.php");
+    exit();
+}
+
+// Optional: restrict dashboard to faculty interns only
+if ($userRole !== 'faculty_intern') {
+    echo "<p>Access denied. Only Faculty Interns can view this page.</p>";
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -53,7 +72,6 @@ $userName = "Prof. Angela Owusu Ansah";
                         <span>Mon, Wed, Fri</span>
                     </div>
                 </div>
-
                 <div class="course-card" onclick="alert('View course details')">
                     <div class="course-code">CS201</div>
                     <div class="course-name">Data Structures & Algorithms</div>
@@ -62,7 +80,6 @@ $userName = "Prof. Angela Owusu Ansah";
                         <span>Tue, Thu</span>
                     </div>
                 </div>
-
                 <div class="course-card" onclick="alert('View course details')">
                     <div class="course-code">CS301</div>
                     <div class="course-name">Database Management Systems</div>
@@ -71,7 +88,6 @@ $userName = "Prof. Angela Owusu Ansah";
                         <span>Mon, Wed</span>
                     </div>
                 </div>
-
                 <div class="course-card" onclick="alert('View course details')">
                     <div class="course-code">CS401</div>
                     <div class="course-name">Software Engineering</div>
@@ -100,6 +116,18 @@ $userName = "Prof. Angela Owusu Ansah";
                         <div class="stat"><div class="stat-value">42</div><div class="stat-label">Present</div></div>
                         <div class="stat"><div class="stat-value">3</div><div class="stat-label">Absent</div></div>
                         <span class="attendance-badge badge-high">93% Attendance</span>
+                    </div>
+                </div>
+
+                <div class="session-item">
+                    <div class="session-details">
+                        <h3>CS201 - Data Structures & Algorithms</h3>
+                        <div class="session-meta">Yesterday, 2:00 PM - 3:30 PM</div>
+                    </div>
+                    <div class="session-stats">
+                        <div class="stat"><div class="stat-value">35</div><div class="stat-label">Present</div></div>
+                        <div class="stat"><div class="stat-value">3</div><div class="stat-label">Absent</div></div>
+                        <span class="attendance-badge badge-high">92% Attendance</span>
                     </div>
                 </div>
             </div>

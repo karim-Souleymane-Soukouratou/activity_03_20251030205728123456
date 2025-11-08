@@ -3,35 +3,40 @@ session_start();
 require 'db.php';
 
 $error = "";
+$success = "";
 
 if ($_SERVER['REQUEST_METHOD'] === "POST") {
+    $name = $_POST['name'];
     $email = $_POST['email'];
     $password = $_POST['password'];
     $role = $_POST['role'];
 
-    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? AND role = ?");
-    $stmt->execute([$email, $role]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Hash password
+    $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['email'] = $user['email'];
-        $_SESSION['role'] = $user['role'];
-        $_SESSION['name'] = $user['name'];
-        header("Location: FI_Dashboard.php");
-        exit();
+    // Check if email exists
+    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+
+    if ($stmt->rowCount() > 0) {
+        $error = "Email already registered!";
     } else {
-        $error = "Invalid email, password, or role!";
+        $stmt = $conn->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
+        if ($stmt->execute([$name, $email, $passwordHash, $role])) {
+            $success = "Registration successful! You can now login.";
+        } else {
+            $error = "Registration failed. Try again!";
+        }
     }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login Page</title>
+<title>Register Page</title>
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -59,13 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
         z-index: 0;
     }
 
-    .login-container {
+    .register-container {
         position: relative;
         z-index: 1;
         text-align: center;
     }
 
-    .login-box {
+    .register-box {
         background: white;
         padding: 30px;
         border-radius: 10px;
@@ -75,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
         color: black;
     }
 
-    .login-box img {
+    .register-box img {
         margin-bottom: 20px;
     }
 
@@ -107,6 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
         margin: 5px 0;
     }
 
+    .success {
+        color: green;
+        margin: 5px 0;
+    }
+
     a {
         color: #921e12;
         text-decoration: none;
@@ -120,27 +130,29 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 <body>
 <div class="overlay"></div>
 
-<div class="login-container">
-    <div class="login-box">
+<div class="register-container">
+    <div class="register-box">
         <img src="ashesi_logo.png" alt="Ashesi Logo" width="120" height="120">
-        <h2>Login</h2>
+        <h2>Register</h2>
 
         <?php
         if ($error) echo "<p class='error'>$error</p>";
+        if ($success) echo "<p class='success'>$success</p>";
         ?>
 
-        <form method="POST" action="login.php">
-            <input type="email" name="email" placeholder="Enter your Ashesi email" required><br>
+        <form method="POST" action="register.php">
+            <input type="text" name="name" placeholder="Full Name" required><br>
+            <input type="email" name="email" placeholder="Ashesi Email" required><br>
             <input type="password" name="password" placeholder="Password" required><br>
             <select name="role" required>
                 <option value="">-- Select Role --</option>
                 <option value="student">Student</option>
-                <option value="faculty_intern">Faculty_Intern</option>
+                <option value="faculty_intern">Faculty Intern</option>
                 <option value="lecturer">Lecturer</option>
             </select><br>
-            <input type="submit" value="Login">
+            <input type="submit" value="Register">
         </form>
-        <p>Don't have an account? <a href="register.php">Register here</a></p>
+        <p>Already registered? <a href="login.php">Login here</a></p>
     </div>
 </div>
 </body>
